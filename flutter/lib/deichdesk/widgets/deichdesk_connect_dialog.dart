@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/formatter/id_formatter.dart';
+import 'package:flutter_hbb/models/platform_model.dart';
 
 /// Small DeichDesk entry point into RustDesk's existing connection function.
 class DeichDeskConnectDialog extends StatefulWidget {
