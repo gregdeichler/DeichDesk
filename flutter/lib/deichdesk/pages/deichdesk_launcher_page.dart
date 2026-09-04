@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/common/widgets/peers_view.dart';
 import 'package:flutter_hbb/deichdesk/models/deichdesk_launcher_state.dart';
+import 'package:flutter_hbb/deichdesk/widgets/deichdesk_peer_views.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_tag_bar.dart';
+import 'package:flutter_hbb/models/ab_model.dart';
+import 'package:get/get.dart';
 
-/// Phase-1 DeichDesk launcher shell.
-///
-/// This intentionally starts as a presentation shell. The next integration
-/// slice wires RustDesk's Address Book, discovered peers, connect callbacks,
-/// This Device panel, and context menus into these slots.
+/// Device-first DeichDesk launcher backed directly by RustDesk models.
 class DeichDeskLauncherPage extends StatefulWidget {
   const DeichDeskLauncherPage({super.key});
 
@@ -21,7 +22,15 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
   final searchFocusNode = FocusNode();
 
   @override
+  void initState() {
+    super.initState();
+    // Reuse RustDesk's Address Book pull lifecycle. No DeichDesk peer database.
+    gFFI.abModel.pullAb(force: ForcePullAb.listAndCurrent, quiet: false);
+  }
+
+  @override
   void dispose() {
+    peerSearchText.value = '';
     state.dispose();
     searchController.dispose();
     searchFocusNode.dispose();
@@ -35,10 +44,23 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
     });
   }
 
+  void _setSearch(String value) {
+    state.setSearchText(value);
+    // BasePeersView already owns RustDesk's async peer matching pipeline.
+    peerSearchText.value = value;
+  }
+
   void _closeSearch() {
     searchController.clear();
+    peerSearchText.value = '';
     state.setSearchExpanded(false);
     searchFocusNode.unfocus();
+  }
+
+  void _selectTag(String? tag) {
+    state.setSelectedTag(tag);
+    gFFI.abModel.selectedTags.clear();
+    if (tag != null) gFFI.abModel.selectedTags.add(tag);
   }
 
   @override
@@ -80,15 +102,14 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                       searchController: searchController,
                       searchFocusNode: searchFocusNode,
                       onSearchPressed: _openSearch,
-                      onSearchChanged: state.setSearchText,
+                      onSearchChanged: _setSearch,
                       onSearchClosed: _closeSearch,
                       onThisDevicePressed: () {
-                        // RustDesk ServerModel/ID/password panel is wired in
-                        // during the integration slice.
+                        // Next slice: compact wrapper around RustDesk's local
+                        // ID/password/server model.
                       },
                       onSettingsPressed: () {
-                        // Existing RustDesk settings navigation is wired in
-                        // during the integration slice.
+                        // Next slice: route to simplified DeichDesk settings.
                       },
                     ),
                     const Divider(height: 1),
@@ -106,18 +127,12 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                             const SizedBox(height: 8),
-                            DeichDeskTagBar(
-                              // Temporary shell values. These are replaced by
-                              // gFFI.abModel tags in the integration slice.
-                              visibleTags: const [],
-                              overflowTags: const [],
-                              selectedTag: state.selectedTag,
-                              onSelected: state.setSelectedTag,
-                            ),
+                            _buildTagBar(),
                             const SizedBox(height: 8),
-                            const Expanded(
-                              child: _IntegrationSlot(
-                                label: 'RustDesk Address Book peers',
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(9),
+                                child: DeichDeskAddressBookPeersView(),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -149,17 +164,18 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                               ),
                             ),
                             if (state.accessibleDevicesExpanded)
-                              const SizedBox(
-                                height: 104,
-                                child: _IntegrationSlot(
-                                  label: 'RustDesk discovered peers',
+                              SizedBox(
+                                height: 112,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(9),
+                                  child: DeichDeskAccessiblePeersView(),
                                 ),
                               ),
                             const SizedBox(height: 8),
                             _Footer(
                               onConnectById: () {
-                                // Existing RustDesk Connect-by-ID UI is wired
-                                // here during the integration slice.
+                                // Next slice: compact entry point to existing
+                                // RustDesk connect-by-ID flow.
                               },
                             ),
                           ],
@@ -174,6 +190,24 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
         ),
       ),
     );
+  }
+
+  Widget _buildTagBar() {
+    return Obx(() {
+      final tags = gFFI.abModel.currentAbTags
+          .map((tag) => tag.toString())
+          .toList(growable: false);
+      final visibleCount = tags.length > 4 ? 4 : tags.length;
+      final visible = tags.take(visibleCount).toList(growable: false);
+      final overflow = tags.skip(visibleCount).toList(growable: false);
+
+      return DeichDeskTagBar(
+        visibleTags: visible,
+        overflowTags: overflow,
+        selectedTag: state.selectedTag,
+        onSelected: _selectTag,
+      );
+    });
   }
 }
 
@@ -274,33 +308,8 @@ class _Footer extends StatelessWidget {
           label: const Text('Connect by ID'),
         ),
         const Spacer(),
-        Text(
-          'Server status',
-          style: Theme.of(context).textTheme.labelSmall,
-        ),
+        Text('Server status', style: Theme.of(context).textTheme.labelSmall),
       ],
-    );
-  }
-}
-
-class _IntegrationSlot extends StatelessWidget {
-  const _IntegrationSlot({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Text(
-        label,
-        style: Theme.of(context).textTheme.bodySmall,
-      ),
     );
   }
 }
