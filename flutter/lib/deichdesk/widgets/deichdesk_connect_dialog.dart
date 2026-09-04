@@ -5,12 +5,17 @@ import 'package:flutter_hbb/common/formatter/id_formatter.dart';
 
 /// Small DeichDesk entry point into RustDesk's existing connection function.
 class DeichDeskConnectDialog extends StatefulWidget {
-  const DeichDeskConnectDialog({super.key});
+  const DeichDeskConnectDialog({
+    super.key,
+    required this.connectionContext,
+  });
+
+  final BuildContext connectionContext;
 
   static Future<void> show(BuildContext context) {
     return showDialog<void>(
       context: context,
-      builder: (_) => const DeichDeskConnectDialog(),
+      builder: (_) => DeichDeskConnectDialog(connectionContext: context),
     );
   }
 
@@ -51,7 +56,7 @@ class _DeichDeskConnectDialogState extends State<DeichDeskConnectDialog> {
     final id = controller.text.replaceAll(' ', '').trim();
     if (id.isEmpty) return;
     Navigator.of(context).pop();
-    connect(context, id);
+    connect(widget.connectionContext, id);
   }
 
   @override
