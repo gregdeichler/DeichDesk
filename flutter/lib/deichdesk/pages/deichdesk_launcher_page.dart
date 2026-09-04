@@ -31,7 +31,6 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
   @override
   void initState() {
     super.initState();
-    // Reuse RustDesk's Address Book pull lifecycle. No DeichDesk peer database.
     gFFI.peerTabModel.setCurrentTab(PeerTabIndex.ab.index);
     gFFI.abModel.pullAb(force: ForcePullAb.listAndCurrent, quiet: false);
   }
@@ -102,6 +101,7 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
           child: Focus(
             autofocus: true,
             child: Scaffold(
+              backgroundColor: Theme.of(context).colorScheme.surface,
               body: SafeArea(
                 child: Column(
                   children: [
@@ -117,77 +117,74 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                       onSettingsPressed: () =>
                           DeichDeskSettingsDialog.show(context, preferences),
                     ),
-                    const Divider(height: 1),
                     Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'My Computers',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 8),
-                            _buildTagBar(),
-                            const SizedBox(height: 8),
-                            Expanded(
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(9),
-                                child: DeichDeskAddressBookPeersView(
-                                  preferences: preferences,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            InkWell(
-                              borderRadius: BorderRadius.circular(8),
-                              onTap: () =>
-                                  preferences.setAccessibleDevicesExpanded(
-                                !preferences.accessibleDevicesExpanded,
-                              ),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final compact = constraints.maxWidth < 760;
+                          final horizontalPadding = compact ? 12.0 : 20.0;
+                          return Center(
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxWidth: 1180),
                               child: Padding(
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 6),
-                                child: Row(
+                                padding: EdgeInsets.fromLTRB(
+                                  horizontalPadding,
+                                  compact ? 12 : 18,
+                                  horizontalPadding,
+                                  12,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
                                   children: [
-                                    Icon(
-                                      preferences.accessibleDevicesExpanded
-                                          ? Icons.expand_more
-                                          : Icons.chevron_right,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 4),
                                     Text(
-                                      'Accessible Devices',
+                                      'My Computers',
                                       style: Theme.of(context)
                                           .textTheme
-                                          .titleSmall
+                                          .titleLarge
                                           ?.copyWith(
-                                              fontWeight: FontWeight.w600),
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: -.3,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Your saved remote computers',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    _buildTagBar(),
+                                    const SizedBox(height: 12),
+                                    Expanded(
+                                      child: DeichDeskAddressBookPeersView(
+                                        preferences: preferences,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    _AccessibleSection(
+                                      expanded:
+                                          preferences.accessibleDevicesExpanded,
+                                      onToggle: () => preferences
+                                          .setAccessibleDevicesExpanded(
+                                        !preferences.accessibleDevicesExpanded,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    _Footer(
+                                      onConnectById: () =>
+                                          DeichDeskConnectDialog.show(context),
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                            if (preferences.accessibleDevicesExpanded)
-                              SizedBox(
-                                height: 112,
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(9),
-                                  child: DeichDeskAccessiblePeersView(),
-                                ),
-                              ),
-                            const SizedBox(height: 8),
-                            _Footer(
-                              onConnectById: () =>
-                                  DeichDeskConnectDialog.show(context),
-                            ),
-                          ],
-                        ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -242,60 +239,214 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 54,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14),
-        child: Row(
-          children: [
-            Text(
-              'DeichDesk',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minHeight: 66),
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border(
+          bottom: BorderSide(color: scheme.outlineVariant.withOpacity(.5)),
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 700;
+          return Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 12 : 20,
+              vertical: 10,
             ),
-            const Spacer(),
-            if (searchExpanded)
-              SizedBox(
-                width: 220,
-                child: TextField(
-                  controller: searchController,
-                  focusNode: searchFocusNode,
-                  onChanged: onSearchChanged,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    hintText: 'Search computers',
-                    prefixIcon: const Icon(Icons.search, size: 19),
-                    suffixIcon: IconButton(
-                      tooltip: 'Close search',
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: onSearchClosed,
-                    ),
-                    border: const OutlineInputBorder(),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: scheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  child: Icon(
+                    Icons.desktop_windows_rounded,
+                    size: 20,
+                    color: scheme.onPrimaryContainer,
                   ),
                 ),
-              )
-            else
-              IconButton(
-                tooltip: 'Search',
-                icon: const Icon(Icons.search),
-                onPressed: onSearchPressed,
-              ),
-            const SizedBox(width: 4),
-            OutlinedButton.icon(
-              onPressed: onThisDevicePressed,
-              icon: const Icon(Icons.computer, size: 18),
-              label: const Text('This Device'),
+                const SizedBox(width: 10),
+                if (!compact || !searchExpanded)
+                  Text(
+                    'DeichDesk',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -.2,
+                        ),
+                  ),
+                const Spacer(),
+                if (searchExpanded)
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: 150,
+                        maxWidth: compact ? 240 : 300,
+                      ),
+                      child: SizedBox(
+                        height: 40,
+                        child: TextField(
+                          controller: searchController,
+                          focusNode: searchFocusNode,
+                          onChanged: onSearchChanged,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: 'Search computers',
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            suffixIcon: IconButton(
+                              tooltip: 'Close search',
+                              icon: const Icon(Icons.close, size: 17),
+                              onPressed: onSearchClosed,
+                            ),
+                            filled: true,
+                            fillColor: scheme.surfaceContainerHighest,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(11),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  _HeaderIcon(
+                    tooltip: 'Search',
+                    icon: Icons.search_rounded,
+                    onPressed: onSearchPressed,
+                  ),
+                const SizedBox(width: 6),
+                if (compact)
+                  _HeaderIcon(
+                    tooltip: 'This Device',
+                    icon: Icons.computer_rounded,
+                    onPressed: onThisDevicePressed,
+                  )
+                else
+                  OutlinedButton.icon(
+                    onPressed: onThisDevicePressed,
+                    icon: const Icon(Icons.computer_rounded, size: 17),
+                    label: const Text('This Device'),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 40),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                    ),
+                  ),
+                const SizedBox(width: 6),
+                _HeaderIcon(
+                  tooltip: 'Settings',
+                  icon: Icons.settings_outlined,
+                  onPressed: onSettingsPressed,
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            IconButton(
-              tooltip: 'Settings',
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: onSettingsPressed,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HeaderIcon extends StatelessWidget {
+  const _HeaderIcon({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onPressed,
+      icon: Icon(icon, size: 20),
+      style: IconButton.styleFrom(
+        minimumSize: const Size(40, 40),
+        maximumSize: const Size(40, 40),
+        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(11)),
+      ),
+    );
+  }
+}
+
+class _AccessibleSection extends StatelessWidget {
+  const _AccessibleSection({required this.expanded, required this.onToggle});
+
+  final bool expanded;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: scheme.outlineVariant.withOpacity(.52)),
+      ),
+      child: Column(
+        children: [
+          InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onToggle,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+              child: Row(
+                children: [
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      color: scheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Icon(
+                      Icons.devices_other_rounded,
+                      size: 17,
+                      color: scheme.onSecondaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Accessible Devices',
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                  Icon(
+                    expanded ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (expanded) ...[
+            Divider(height: 1, color: scheme.outlineVariant.withOpacity(.5)),
+            SizedBox(
+              height: 112,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: DeichDeskAccessiblePeersView(),
+              ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -308,16 +459,39 @@ class _Footer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        TextButton.icon(
-          onPressed: onConnectById,
-          icon: const Icon(Icons.add_link, size: 18),
-          label: const Text('Connect by ID'),
-        ),
-        const Spacer(),
-        const DeichDeskServerStatus(),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 520;
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton.icon(
+                onPressed: onConnectById,
+                icon: const Icon(Icons.add_link, size: 18),
+                label: const Text('Connect by ID'),
+              ),
+              const SizedBox(height: 8),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: DeichDeskServerStatus(),
+              ),
+            ],
+          );
+        }
+
+        return Row(
+          children: [
+            FilledButton.tonalIcon(
+              onPressed: onConnectById,
+              icon: const Icon(Icons.add_link, size: 18),
+              label: const Text('Connect by ID'),
+            ),
+            const Spacer(),
+            const DeichDeskServerStatus(),
+          ],
+        );
+      },
     );
   }
 }
