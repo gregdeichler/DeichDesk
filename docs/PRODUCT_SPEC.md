@@ -61,7 +61,7 @@ Initial examples: `All`, `Home`, `Servers`, `Work`.
 
 Editing/adding a device supports multiple tags and easy `+ New Tag` creation. A new RustDesk tag automatically becomes available as a filter.
 
-Tag overflow behavior is still to be finalized.
+Tag overflow uses a compact **More ▾** menu. Common/current tags remain visible in the top bar; overflow tags move into More rather than horizontally scrolling or wrapping the launcher to a second row.
 
 ### Accessible Devices
 
