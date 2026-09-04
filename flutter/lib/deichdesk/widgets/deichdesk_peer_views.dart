@@ -3,23 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/formatter/id_formatter.dart';
+import 'package:flutter_hbb/common/widgets/dialog.dart';
 import 'package:flutter_hbb/common/widgets/peer_card.dart';
 import 'package:flutter_hbb/common/widgets/peers_view.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/deichdesk/models/deichdesk_preferences.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_device_row.dart';
-import 'package:flutter_hbb/desktop/widgets/material_mod_popup_menu.dart'
-    as mod_menu;
-import 'package:flutter_hbb/desktop/widgets/popup_menu.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
 import 'package:flutter_hbb/models/peer_tab_model.dart';
+import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:get/get.dart';
 
 /// Address Book peers rendered in DeichDesk's persistent manual order.
-///
-/// RustDesk still owns the peer list, online state, search matching, tags,
-/// connection path, and context-menu actions. DeichDesk owns only the order of
-/// RustDesk peer IDs.
+/// RustDesk remains authoritative for peer data, online state and connections.
 class DeichDeskAddressBookPeersView extends StatefulWidget {
   const DeichDeskAddressBookPeersView({
     super.key,
@@ -41,10 +37,8 @@ class _DeichDeskAddressBookPeersViewState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) => _queryOnlines());
-    _onlineTimer = Timer.periodic(
-      const Duration(seconds: 6),
-      (_) => _queryOnlines(),
-    );
+    _onlineTimer =
+        Timer.periodic(const Duration(seconds: 6), (_) => _queryOnlines());
   }
 
   @override
@@ -97,12 +91,8 @@ class _DeichDeskAddressBookPeersViewState
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: Listenable.merge([
-        gFFI.abModel.peersModel,
-        widget.preferences,
-      ]),
+      animation: Listenable.merge([gFFI.abModel.peersModel, widget.preferences]),
       builder: (context, _) => Obx(() {
-        // Register reactive dependencies used by _visiblePeers().
         peerSearchText.value;
         gFFI.abModel.selectedTags.length;
         gFFI.abModel.filterByIntersection.value;
@@ -135,7 +125,10 @@ class _DeichDeskAddressBookPeersViewState
                 itemCount: peers.length,
                 itemBuilder: (context, index) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: _DeichDeskAddressBookPeerRow(peer: peers[index]),
+                  child: _DeichDeskPeerRow(
+                    peer: peers[index],
+                    tab: PeerTabIndex.ab,
+                  ),
                 ),
               );
             }
@@ -155,7 +148,10 @@ class _DeichDeskAddressBookPeersViewState
               itemBuilder: (context, index) => Padding(
                 key: ValueKey(peers[index].id),
                 padding: const EdgeInsets.only(bottom: 4),
-                child: _DeichDeskAddressBookPeerRow(peer: peers[index]),
+                child: _DeichDeskPeerRow(
+                  peer: peers[index],
+                  tab: PeerTabIndex.ab,
+                ),
               ),
             );
           },
@@ -170,7 +166,8 @@ class DeichDeskAccessiblePeersView extends BasePeersView {
   DeichDeskAccessiblePeersView({super.key})
       : super(
           peerTabIndex: PeerTabIndex.lan,
-          peerCardBuilder: (peer) => _DeichDeskDiscoveredPeerRow(peer: peer),
+          peerCardBuilder: (peer) =>
+              _DeichDeskPeerRow(peer: peer, tab: PeerTabIndex.lan),
         );
 
   @override
@@ -182,39 +179,14 @@ class DeichDeskAccessiblePeersView extends BasePeersView {
   }
 }
 
-mixin _DeichDeskPeerRowMixin on BasePeerCard {
-  Future<List<mod_menu.PopupMenuEntry<String>>> _menuEntries(
-      BuildContext context) async {
-    final entries = await _buildMenuItems(context);
-    return entries
-        .map((entry) => entry.build(
-              context,
-              const MenuConfig(
-                commonColor: CustomPopupMenuTheme.commonColor,
-                height: CustomPopupMenuTheme.height,
-                dividerHeight: CustomPopupMenuTheme.dividerHeight,
-              ),
-            ))
-        .expand((items) => items)
-        .toList();
-  }
+class _DeichDeskPeerRow extends StatelessWidget {
+  const _DeichDeskPeerRow({required this.peer, required this.tab});
 
-  Future<void> showDeichDeskPeerMenu(
-      BuildContext context, Offset position) async {
-    await mod_menu.showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy,
-        position.dx,
-        position.dy,
-      ),
-      items: await _menuEntries(context),
-      elevation: 8,
-    );
-  }
+  final Peer peer;
+  final PeerTabIndex tab;
 
-  Widget buildDeichDeskRow(BuildContext context) {
+  @override
+  Widget build(BuildContext context) {
     final secondary = hideUsernameOnCard == true
         ? peer.hostname
         : '${peer.username}${peer.username.isNotEmpty && peer.hostname.isNotEmpty ? '@' : ''}${peer.hostname}';
@@ -232,23 +204,148 @@ mixin _DeichDeskPeerRowMixin on BasePeerCard {
       onSelect: () => gFFI.peerTabModel.select(peer),
       onConnect: () => connectInPeerTab(context, peer, tab),
       onSecondaryTap: (details) =>
-          showDeichDeskPeerMenu(context, details.globalPosition),
+          _showPeerMenu(context, details.globalPosition),
     );
   }
-}
 
-class _DeichDeskAddressBookPeerRow extends AddressBookPeerCard
-    with _DeichDeskPeerRowMixin {
-  _DeichDeskAddressBookPeerRow({required super.peer});
+  Future<void> _showPeerMenu(BuildContext context, Offset position) async {
+    final items = <PopupMenuEntry<String>>[
+      const PopupMenuItem(value: 'connect', child: Text('Connect')),
+      const PopupMenuItem(value: 'file', child: Text('File Transfer')),
+      const PopupMenuItem(value: 'camera', child: Text('View Camera')),
+      const PopupMenuItem(value: 'terminal', child: Text('Terminal')),
+      if (isDesktop && peer.platform != kPeerPlatformAndroid)
+        const PopupMenuItem(value: 'tcp', child: Text('TCP Tunneling')),
+      if (!peer.online)
+        const PopupMenuItem(value: 'wol', child: Text('Wake-on-LAN')),
+      if (!isWeb)
+        const PopupMenuItem(
+          value: 'relay',
+          child: Text('Toggle Always Connect via Relay'),
+        ),
+      if (isWindows && peer.platform == kPeerPlatformWindows)
+        const PopupMenuItem(value: 'rdp', child: Text('RDP')),
+      if (isWindows)
+        const PopupMenuItem(
+          value: 'shortcut',
+          child: Text('Create Desktop Shortcut'),
+        ),
+      if (tab == PeerTabIndex.lan && gFFI.userModel.userName.isNotEmpty) ...[
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'add_ab',
+          child: Text('Add to Address Book'),
+        ),
+      ],
+      if (tab == PeerTabIndex.ab && gFFI.abModel.current.canWrite()) ...[
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'rename', child: Text('Rename')),
+        if (gFFI.abModel.currentAbTags.isNotEmpty)
+          const PopupMenuItem(value: 'tags', child: Text('Edit Tags')),
+        const PopupMenuItem(value: 'note', child: Text('Edit Note')),
+        if (gFFI.abModel.current.isPersonal() && peer.hash.isNotEmpty)
+          const PopupMenuItem(
+            value: 'forget_password',
+            child: Text('Forget Password'),
+          ),
+        const PopupMenuDivider(),
+        const PopupMenuItem(
+          value: 'remove',
+          child: Text('Remove from Address Book'),
+        ),
+      ],
+      if (tab == PeerTabIndex.lan) ...[
+        const PopupMenuDivider(),
+        const PopupMenuItem(value: 'remove_discovered', child: Text('Remove')),
+      ],
+    ];
 
-  @override
-  Widget build(BuildContext context) => buildDeichDeskRow(context);
-}
+    final action = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        position.dx,
+        position.dy,
+      ),
+      items: items,
+    );
 
-class _DeichDeskDiscoveredPeerRow extends DiscoveredPeerCard
-    with _DeichDeskPeerRowMixin {
-  _DeichDeskDiscoveredPeerRow({required super.peer});
+    if (action == null || !context.mounted) return;
+    await _runAction(context, action);
+  }
 
-  @override
-  Widget build(BuildContext context) => buildDeichDeskRow(context);
+  Future<void> _runAction(BuildContext context, String action) async {
+    switch (action) {
+      case 'connect':
+        connectInPeerTab(context, peer, tab);
+        break;
+      case 'file':
+        connectInPeerTab(context, peer, tab, isFileTransfer: true);
+        break;
+      case 'camera':
+        connectInPeerTab(context, peer, tab, isViewCamera: true);
+        break;
+      case 'terminal':
+        connectInPeerTab(context, peer, tab, isTerminal: true);
+        break;
+      case 'tcp':
+        connectInPeerTab(context, peer, tab, isTcpTunneling: true);
+        break;
+      case 'wol':
+        bind.mainWol(id: peer.id);
+        break;
+      case 'relay':
+        final current = mainGetPeerBoolOptionSync(peer.id, kOptionForceAlwaysRelay);
+        await bind.mainSetPeerOption(
+          id: peer.id,
+          key: kOptionForceAlwaysRelay,
+          value: bool2option(kOptionForceAlwaysRelay, !current),
+        );
+        showToast(translate('Successful'));
+        break;
+      case 'rdp':
+        connectInPeerTab(context, peer, tab, isRDP: true);
+        break;
+      case 'shortcut':
+        bind.mainCreateShortcut(id: peer.id);
+        showToast(translate('Successful'));
+        break;
+      case 'add_ab':
+        addPeersToAbDialog([Peer.copy(peer)]);
+        break;
+      case 'rename':
+        renameDialog(
+          oldName: peer.alias,
+          onSubmit: (newName) async {
+            await gFFI.abModel.changeAlias(id: peer.id, alias: newName);
+            await bind.mainSetPeerAlias(id: peer.id, alias: newName);
+          },
+        );
+        break;
+      case 'tags':
+        editAbTagDialog(gFFI.abModel.getPeerTags(peer.id), (selected) async {
+          await gFFI.abModel.changeTagForPeers([peer.id], selected);
+        });
+        break;
+      case 'note':
+        editAbPeerNoteDialog(peer.id);
+        break;
+      case 'forget_password':
+        await gFFI.abModel.changePersonalHashPassword(peer.id, '');
+        await bind.mainForgetPassword(id: peer.id);
+        showToast(translate('Successful'));
+        break;
+      case 'remove':
+        deleteConfirmDialog(
+          () async => gFFI.abModel.deletePeers([peer.id]),
+          'Remove "${peer.alias.isEmpty ? formatID(peer.id) : peer.alias}" from the Address Book? This does not uninstall DeichDesk from that computer.',
+        );
+        break;
+      case 'remove_discovered':
+        await bind.mainRemoveDiscovered(id: peer.id);
+        bind.mainLoadLanPeers();
+        break;
+    }
+  }
 }
