@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Compact presentation-only device row used by the DeichDesk launcher.
+/// Polished presentation-only device row used by the DeichDesk launcher.
 ///
 /// Peer actions are callbacks so RustDesk's existing connect/context-menu
 /// behavior stays authoritative. [osIcon] accepts RustDesk's existing platform
@@ -38,34 +38,55 @@ class DeichDeskDeviceRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final foreground = online
         ? scheme.onSurface
-        : scheme.onSurface.withOpacity(0.46);
+        : scheme.onSurface.withOpacity(0.58);
+    final cardColor = selected
+        ? scheme.primaryContainer.withOpacity(0.38)
+        : scheme.surfaceContainerLow;
+    final borderColor = selected
+        ? scheme.primary.withOpacity(0.35)
+        : scheme.outlineVariant.withOpacity(0.52);
 
-    return Opacity(
-      opacity: online ? 1 : 0.72,
+    return AnimatedOpacity(
+      opacity: online ? 1 : 0.78,
+      duration: const Duration(milliseconds: 140),
       child: Material(
-        color: selected ? scheme.secondaryContainer.withOpacity(0.55) : null,
-        borderRadius: BorderRadius.circular(9),
+        color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(9),
+          borderRadius: BorderRadius.circular(14),
           onTap: onSelect,
           onDoubleTap: onConnect,
           onSecondaryTapDown: onSecondaryTap,
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 54),
-            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 140),
+            constraints: const BoxConstraints(minHeight: 64),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: cardColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: borderColor),
+              boxShadow: selected
+                  ? [
+                      BoxShadow(
+                        color: scheme.primary.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 3),
+                      ),
+                    ]
+                  : const [],
+            ),
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 42,
+                  height: 42,
                   decoration: BoxDecoration(
-                    color: deviceColor.withOpacity(0.16),
-                    borderRadius: BorderRadius.circular(9),
+                    color: deviceColor.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-                  child: SizedBox(width: 25, height: 25, child: osIcon),
+                  child: SizedBox(width: 27, height: 27, child: osIcon),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -75,12 +96,13 @@ class DeichDeskDeviceRow extends StatelessWidget {
                         name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: foreground,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: FontWeight.w650,
+                              letterSpacing: -0.1,
                             ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         secondaryText,
                         maxLines: 1,
@@ -92,7 +114,7 @@ class DeichDeskDeviceRow extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 if (trailing != null) trailing! else _Status(online: online),
               ],
             ),
@@ -111,27 +133,40 @@ class _Status extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: online ? scheme.primary : scheme.outline,
+    final background = online
+        ? scheme.primaryContainer.withOpacity(0.55)
+        : scheme.surfaceContainerHighest;
+    final foreground = online
+        ? scheme.onPrimaryContainer
+        : scheme.onSurfaceVariant.withOpacity(0.72);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 7,
+            height: 7,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: online ? scheme.primary : scheme.outline,
+            ),
           ),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          online ? 'Online' : 'Offline',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: online
-                    ? scheme.onSurfaceVariant
-                    : scheme.onSurfaceVariant.withOpacity(0.55),
-              ),
-        ),
-      ],
+          const SizedBox(width: 6),
+          Text(
+            online ? 'Online' : 'Offline',
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ],
+      ),
     );
   }
 }
