@@ -9,6 +9,7 @@ import 'package:flutter_hbb/common/widgets/peers_view.dart';
 import 'package:flutter_hbb/consts.dart';
 import 'package:flutter_hbb/deichdesk/models/deichdesk_preferences.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_device_row.dart';
+import 'package:flutter_hbb/models/ab_model.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
 import 'package:flutter_hbb/models/peer_tab_model.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
