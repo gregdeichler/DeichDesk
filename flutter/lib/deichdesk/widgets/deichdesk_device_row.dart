@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
-/// Presentation-only device row used by the DeichDesk launcher.
+/// Compact presentation-only device row used by the DeichDesk launcher.
 ///
 /// Peer actions are callbacks so RustDesk's existing connect/context-menu
-/// behavior can be wired in without duplicating backend logic here.
+/// behavior stays authoritative. [osIcon] accepts RustDesk's existing platform
+/// image widget rather than translating platforms into a second icon system.
 class DeichDeskDeviceRow extends StatelessWidget {
   const DeichDeskDeviceRow({
     super.key,
@@ -24,7 +25,7 @@ class DeichDeskDeviceRow extends StatelessWidget {
   final String name;
   final String secondaryText;
   final bool online;
-  final IconData osIcon;
+  final Widget osIcon;
   final Color deviceColor;
   final bool selected;
   final VoidCallback onSelect;
@@ -62,7 +63,7 @@ class DeichDeskDeviceRow extends StatelessWidget {
                     borderRadius: BorderRadius.circular(9),
                   ),
                   alignment: Alignment.center,
-                  child: Icon(osIcon, size: 21, color: foreground),
+                  child: SizedBox(width: 25, height: 25, child: osIcon),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -92,10 +93,7 @@ class DeichDeskDeviceRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                if (trailing != null)
-                  trailing!
-                else
-                  _Status(online: online),
+                if (trailing != null) trailing! else _Status(online: online),
               ],
             ),
           ),
