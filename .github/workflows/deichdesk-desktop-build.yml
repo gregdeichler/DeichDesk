@@ -260,7 +260,8 @@ jobs:
           doNotCache: false
 
       - name: Install vcpkg dependencies
-        run: "$VCPKG_ROOT/vcpkg" install --triplet arm64-osx --x-install-root="$VCPKG_ROOT/installed"
+        run: |
+          "$VCPKG_ROOT/vcpkg" install --triplet arm64-osx --x-install-root="$VCPKG_ROOT/installed"
 
       - name: Set macOS deployment target
         run: |
