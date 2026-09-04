@@ -98,7 +98,7 @@ class DeichDeskDeviceRow extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                               color: foreground,
-                              fontWeight: FontWeight.w650,
+                              fontWeight: FontWeight.w600,
                               letterSpacing: -0.1,
                             ),
                       ),
