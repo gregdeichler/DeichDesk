@@ -1,0 +1,47 @@
+name: DeichDesk Flutter Analyze
+
+on:
+  push:
+    branches:
+      - integration/rustdesk-82aa28f
+      - develop
+  pull_request:
+    paths:
+      - 'flutter/lib/deichdesk/**'
+      - 'flutter/lib/desktop/pages/desktop_tab_page.dart'
+      - '.github/workflows/deichdesk-analyze.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.5'
+          channel: stable
+          cache: true
+
+      - name: Flutter version
+        run: flutter --version
+
+      - name: Install Flutter dependencies
+        working-directory: flutter
+        run: flutter pub get
+
+      - name: Analyze DeichDesk integration
+        working-directory: flutter
+        run: >-
+          flutter analyze
+          lib/deichdesk
+          lib/desktop/pages/desktop_tab_page.dart
