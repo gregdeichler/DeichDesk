@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/models/platform_model.dart';
 
 /// Compact status indicator backed by RustDesk's existing connection-status API.
 class DeichDeskServerStatus extends StatefulWidget {
