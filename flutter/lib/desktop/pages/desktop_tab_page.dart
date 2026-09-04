@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/consts.dart';
+import 'package:flutter_hbb/deichdesk/pages/deichdesk_desktop_home_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_home_page.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
@@ -43,15 +44,25 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   _DesktopTabPageState() {
     RemoteCountState.init();
     Get.put<DesktopTabController>(tabController);
+
+    // Keep RustDesk's specialized incoming/outgoing-only home composition for
+    // those build modes. Normal Full mode presents the DeichDesk launcher while
+    // retaining RustDesk's main-window lifecycle/bootstrap offstage.
+    final Widget homePage = bind.isIncomingOnly() || bind.isOutgoingOnly()
+        ? DesktopHomePage(
+            key: const ValueKey(kTabLabelHomePage),
+          )
+        : DeichDeskDesktopHomePage(
+            key: const ValueKey(kTabLabelHomePage),
+          );
+
     tabController.add(TabInfo(
         key: kTabLabelHomePage,
         label: kTabLabelHomePage,
         selectedIcon: Icons.home_sharp,
         unselectedIcon: Icons.home_outlined,
         closable: false,
-        page: DesktopHomePage(
-          key: const ValueKey(kTabLabelHomePage),
-        )));
+        page: homePage));
     if (bind.isIncomingOnly()) {
       tabController.onSelected = (key) {
         if (key == kTabLabelHomePage) {
