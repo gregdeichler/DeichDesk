@@ -3,12 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/peers_view.dart';
 import 'package:flutter_hbb/deichdesk/models/deichdesk_launcher_state.dart';
+import 'package:flutter_hbb/deichdesk/models/deichdesk_preferences.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_connect_dialog.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_peer_views.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_server_status.dart';
+import 'package:flutter_hbb/deichdesk/widgets/deichdesk_settings_dialog.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_tag_bar.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_this_device_dialog.dart';
 import 'package:flutter_hbb/models/ab_model.dart';
+import 'package:flutter_hbb/models/peer_tab_model.dart';
 import 'package:get/get.dart';
 
 /// Device-first DeichDesk launcher backed directly by RustDesk models.
@@ -21,6 +24,7 @@ class DeichDeskLauncherPage extends StatefulWidget {
 
 class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
   final state = DeichDeskLauncherState();
+  final preferences = DeichDeskPreferences();
   final searchController = TextEditingController();
   final searchFocusNode = FocusNode();
 
@@ -28,6 +32,7 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
   void initState() {
     super.initState();
     // Reuse RustDesk's Address Book pull lifecycle. No DeichDesk peer database.
+    gFFI.peerTabModel.setCurrentTab(PeerTabIndex.ab.index);
     gFFI.abModel.pullAb(force: ForcePullAb.listAndCurrent, quiet: false);
   }
 
@@ -35,6 +40,7 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
   void dispose() {
     peerSearchText.value = '';
     state.dispose();
+    preferences.dispose();
     searchController.dispose();
     searchFocusNode.dispose();
     super.dispose();
@@ -68,7 +74,7 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
   @override
   Widget build(BuildContext context) {
     return AnimatedBuilder(
-      animation: state,
+      animation: Listenable.merge([state, preferences]),
       builder: (context, _) => Shortcuts(
         shortcuts: <ShortcutActivator, Intent>{
           const SingleActivator(LogicalKeyboardKey.keyF, control: true):
@@ -108,10 +114,8 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                       onSearchClosed: _closeSearch,
                       onThisDevicePressed: () =>
                           DeichDeskThisDeviceDialog.show(context),
-                      onSettingsPressed: () {
-                        // Phase 2: route to DeichDesk simplified settings with
-                        // Advanced RustDesk Settings beneath it.
-                      },
+                      onSettingsPressed: () =>
+                          DeichDeskSettingsDialog.show(context, preferences),
                     ),
                     const Divider(height: 1),
                     Expanded(
@@ -133,20 +137,25 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                             Expanded(
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(9),
-                                child: DeichDeskAddressBookPeersView(),
+                                child: DeichDeskAddressBookPeersView(
+                                  preferences: preferences,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 8),
                             InkWell(
                               borderRadius: BorderRadius.circular(8),
-                              onTap: state.toggleAccessibleDevices,
+                              onTap: () =>
+                                  preferences.setAccessibleDevicesExpanded(
+                                !preferences.accessibleDevicesExpanded,
+                              ),
                               child: Padding(
                                 padding:
                                     const EdgeInsets.symmetric(vertical: 6),
                                 child: Row(
                                   children: [
                                     Icon(
-                                      state.accessibleDevicesExpanded
+                                      preferences.accessibleDevicesExpanded
                                           ? Icons.expand_more
                                           : Icons.chevron_right,
                                       size: 20,
@@ -164,7 +173,7 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                                 ),
                               ),
                             ),
-                            if (state.accessibleDevicesExpanded)
+                            if (preferences.accessibleDevicesExpanded)
                               SizedBox(
                                 height: 112,
                                 child: ClipRRect(
