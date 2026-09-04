@@ -3,8 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/common/widgets/peers_view.dart';
 import 'package:flutter_hbb/deichdesk/models/deichdesk_launcher_state.dart';
+import 'package:flutter_hbb/deichdesk/widgets/deichdesk_connect_dialog.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_peer_views.dart';
+import 'package:flutter_hbb/deichdesk/widgets/deichdesk_server_status.dart';
 import 'package:flutter_hbb/deichdesk/widgets/deichdesk_tag_bar.dart';
+import 'package:flutter_hbb/deichdesk/widgets/deichdesk_this_device_dialog.dart';
 import 'package:flutter_hbb/models/ab_model.dart';
 import 'package:get/get.dart';
 
@@ -46,7 +49,6 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
 
   void _setSearch(String value) {
     state.setSearchText(value);
-    // BasePeersView already owns RustDesk's async peer matching pipeline.
     peerSearchText.value = value;
   }
 
@@ -104,12 +106,11 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                       onSearchPressed: _openSearch,
                       onSearchChanged: _setSearch,
                       onSearchClosed: _closeSearch,
-                      onThisDevicePressed: () {
-                        // Next slice: compact wrapper around RustDesk's local
-                        // ID/password/server model.
-                      },
+                      onThisDevicePressed: () =>
+                          DeichDeskThisDeviceDialog.show(context),
                       onSettingsPressed: () {
-                        // Next slice: route to simplified DeichDesk settings.
+                        // Phase 2: route to DeichDesk simplified settings with
+                        // Advanced RustDesk Settings beneath it.
                       },
                     ),
                     const Divider(height: 1),
@@ -173,10 +174,8 @@ class _DeichDeskLauncherPageState extends State<DeichDeskLauncherPage> {
                               ),
                             const SizedBox(height: 8),
                             _Footer(
-                              onConnectById: () {
-                                // Next slice: compact entry point to existing
-                                // RustDesk connect-by-ID flow.
-                              },
+                              onConnectById: () =>
+                                  DeichDeskConnectDialog.show(context),
                             ),
                           ],
                         ),
@@ -308,7 +307,7 @@ class _Footer extends StatelessWidget {
           label: const Text('Connect by ID'),
         ),
         const Spacer(),
-        Text('Server status', style: Theme.of(context).textTheme.labelSmall),
+        const DeichDeskServerStatus(),
       ],
     );
   }
