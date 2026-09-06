@@ -125,7 +125,7 @@ class _DeichDeskAddressBookPeersViewState
               return ListView.builder(
                 itemCount: peers.length,
                 itemBuilder: (context, index) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
+                  padding: const EdgeInsets.only(bottom: 5),
                   child: _DeichDeskPeerRow(
                     peer: peers[index],
                     tab: PeerTabIndex.ab,
@@ -135,7 +135,7 @@ class _DeichDeskAddressBookPeersViewState
             }
 
             return ReorderableListView.builder(
-              buildDefaultDragHandles: true,
+              buildDefaultDragHandles: false,
               itemCount: peers.length,
               onReorder: (oldIndex, newIndex) async {
                 if (newIndex > oldIndex) newIndex -= 1;
@@ -146,12 +146,15 @@ class _DeichDeskAddressBookPeersViewState
                 reordered.insert(newIndex, moved);
                 await widget.preferences.saveDisplayedOrder(reordered);
               },
-              itemBuilder: (context, index) => Padding(
+              itemBuilder: (context, index) => ReorderableDragStartListener(
                 key: ValueKey(peers[index].id),
-                padding: const EdgeInsets.only(bottom: 4),
-                child: _DeichDeskPeerRow(
-                  peer: peers[index],
-                  tab: PeerTabIndex.ab,
+                index: index,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 5),
+                  child: _DeichDeskPeerRow(
+                    peer: peers[index],
+                    tab: PeerTabIndex.ab,
+                  ),
                 ),
               ),
             );
