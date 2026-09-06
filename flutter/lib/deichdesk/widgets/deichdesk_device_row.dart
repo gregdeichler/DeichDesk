@@ -40,36 +40,36 @@ class DeichDeskDeviceRow extends StatelessWidget {
         ? scheme.onSurface
         : scheme.onSurface.withOpacity(0.58);
     final cardColor = selected
-        ? scheme.primaryContainer.withOpacity(0.38)
-        : scheme.surfaceContainerLow;
+        ? scheme.primaryContainer.withOpacity(0.28)
+        : scheme.surfaceContainerLowest;
     final borderColor = selected
-        ? scheme.primary.withOpacity(0.35)
-        : scheme.outlineVariant.withOpacity(0.52);
+        ? scheme.primary.withOpacity(0.30)
+        : scheme.outlineVariant.withOpacity(0.42);
 
     return AnimatedOpacity(
-      opacity: online ? 1 : 0.78,
+      opacity: online ? 1 : 0.72,
       duration: const Duration(milliseconds: 140),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(13),
           onTap: onSelect,
           onDoubleTap: onConnect,
           onSecondaryTapDown: onSecondaryTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 140),
-            constraints: const BoxConstraints(minHeight: 64),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            constraints: const BoxConstraints(minHeight: 60),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
               color: cardColor,
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(13),
               border: Border.all(color: borderColor),
               boxShadow: selected
                   ? [
                       BoxShadow(
-                        color: scheme.primary.withOpacity(0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 3),
+                        color: scheme.primary.withOpacity(0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
                       ),
                     ]
                   : const [],
@@ -102,15 +102,17 @@ class DeichDeskDeviceRow extends StatelessWidget {
                               letterSpacing: -0.1,
                             ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        secondaryText,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: foreground.withOpacity(0.72),
-                            ),
-                      ),
+                      if (secondaryText.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          secondaryText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: foreground.withOpacity(0.70),
+                              ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -133,15 +135,17 @@ class _Status extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    const onlineGreen = Color(0xFF168A4A);
+    const onlineGreenBackground = Color(0xFFE7F6ED);
     final background = online
-        ? scheme.primaryContainer.withOpacity(0.55)
-        : scheme.surfaceContainerHighest;
+        ? onlineGreenBackground
+        : scheme.surfaceContainerHighest.withOpacity(0.55);
     final foreground = online
-        ? scheme.onPrimaryContainer
+        ? onlineGreen
         : scheme.onSurfaceVariant.withOpacity(0.72);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(999),
@@ -154,7 +158,7 @@ class _Status extends StatelessWidget {
             height: 7,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: online ? scheme.primary : scheme.outline,
+              color: online ? onlineGreen : scheme.outline,
             ),
           ),
           const SizedBox(width: 6),
