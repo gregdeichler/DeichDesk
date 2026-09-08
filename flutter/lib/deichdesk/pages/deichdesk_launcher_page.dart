@@ -258,17 +258,14 @@ class _Header extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  child: Icon(
-                    Icons.desktop_windows_rounded,
-                    size: 20,
-                    color: scheme.onPrimaryContainer,
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/deichdesk_icon.png',
+                    width: 40,
+                    height: 40,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.high,
                   ),
                 ),
                 const SizedBox(width: 10),
