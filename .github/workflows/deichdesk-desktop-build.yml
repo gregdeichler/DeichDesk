@@ -1,4 +1,4 @@
-# Validation trigger: 2026-09-04 fresh Windows/macOS desktop artifacts
+# Validation trigger: branded Windows/macOS desktop artifacts and optional release
 name: DeichDesk Desktop Build
 
 on:
@@ -10,12 +10,16 @@ on:
       - "flutter/**"
       - "src/**"
       - "libs/**"
+      - "res/**"
       - "build.py"
       - "Cargo.toml"
       - "Cargo.lock"
       - "vcpkg.json"
       - ".github/workflows/deichdesk-desktop-build.yml"
       - ".github/patches/**"
+
+permissions:
+  contents: write
 
 concurrency:
   group: deichdesk-desktop-build-${{ github.ref }}
@@ -187,6 +191,14 @@ jobs:
           cd "$(dirname "$(dirname "$(which flutter)")")"
           git apply flutter_3.24.4_dropdown_menu_enableFilter.diff
 
+      - name: Generate DeichDesk platform icons
+        shell: pwsh
+        run: |
+          Push-Location flutter
+          flutter pub get
+          flutter pub run flutter_launcher_icons
+          Pop-Location
+
       - name: Build DeichDesk Windows x64
         shell: pwsh
         run: python3 .\build.py --portable --flutter --skip-portable-pack --hwcodec --vram
@@ -272,6 +284,12 @@ jobs:
           sed -i -e "s/osx_minimum_system_version = \"[0-9]*.[0-9]*\"/osx_minimum_system_version = \"${MIN_MACOS_VERSION}\"/" Cargo.toml
           sed -i -e "s/MACOSX_DEPLOYMENT_TARGET = [0-9]*.[0-9]*;/MACOSX_DEPLOYMENT_TARGET = ${MIN_MACOS_VERSION};/" flutter/macos/Runner.xcodeproj/project.pbxproj
 
+      - name: Generate DeichDesk platform icons
+        run: |
+          cd flutter
+          flutter pub get
+          flutter pub run flutter_launcher_icons
+
       - name: Build DeichDesk macOS arm64
         run: ./build.py --flutter --hwcodec --unix-file-copy-paste --screencapturekit
 
@@ -283,3 +301,42 @@ jobs:
         with:
           name: deichdesk-macos-arm64
           path: DeichDesk-macOS-arm64.zip
+
+  release:
+    name: Publish DeichDesk preview release
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[release]')
+    needs:
+      - windows-x64
+      - macos-arm64
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Download Windows artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: deichdesk-windows-x64
+          path: release/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: deichdesk-macos-arm64
+          path: release/macos
+
+      - name: Package Windows release
+        run: |
+          cd release/windows
+          zip -r ../DeichDesk-Windows-x64.zip .
+
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v0.1.0-preview.${{ github.run_number }}"
+          gh release create "$TAG" \
+            release/DeichDesk-Windows-x64.zip \
+            release/macos/DeichDesk-macOS-arm64.zip \
+            --repo "${{ github.repository }}" \
+            --target "${{ github.sha }}" \
+            --title "DeichDesk Preview $TAG" \
+            --generate-notes \
+            --prerelease
