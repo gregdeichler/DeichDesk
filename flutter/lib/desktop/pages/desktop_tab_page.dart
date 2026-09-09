@@ -7,6 +7,7 @@ import 'package:flutter_hbb/desktop/pages/desktop_setting_page.dart';
 import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
+import 'package:flutter_hbb/utils/multi_window_manager.dart';
 import 'package:get/get.dart';
 import 'package:window_manager/window_manager.dart';
 // import 'package:flutter/services.dart';
@@ -85,7 +86,7 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
   /*
   bool _handleKeyEvent(KeyEvent event) {
     if (!mouseIn && event is KeyDownEvent) {
-      print('key down: ${event.logicalKey}');
+      print('key down: $event');
       shouldBeBlocked(_block, canBeBlocked);
     }
     return false; // allow it to propagate
