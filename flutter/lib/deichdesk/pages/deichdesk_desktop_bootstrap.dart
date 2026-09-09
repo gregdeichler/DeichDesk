@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common.dart';
@@ -41,6 +42,8 @@ class _DeichDeskDesktopBootstrapState extends State<DeichDeskDesktopBootstrap>
   void initState() {
     super.initState();
 
+    _startPortableTray();
+
     _identityTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final stopped = await mainGetBoolOption(kOptionStopService);
@@ -54,6 +57,25 @@ class _DeichDeskDesktopBootstrapState extends State<DeichDeskDesktopBootstrap>
     rustDeskWinManager.setMethodHandler(_handleWindowMethod);
     _uniLinksSubscription = listenUniLinks();
     WidgetsBinding.instance.addObserver(this);
+  }
+
+  Future<void> _startPortableTray() async {
+    if (!Platform.isWindows) {
+      return;
+    }
+
+    try {
+      // Installed RustDesk/DeichDesk starts its tray from the service path.
+      // Portable builds do not, so explicitly launch the existing native tray
+      // process. The native --tray handler already enforces a single instance.
+      await Process.start(
+        Platform.resolvedExecutable,
+        const ['--tray'],
+        mode: ProcessStartMode.detached,
+      );
+    } catch (e) {
+      debugPrint('Failed to start DeichDesk tray process: $e');
+    }
   }
 
   Future<dynamic> _handleWindowMethod(
