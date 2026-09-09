@@ -100,6 +100,17 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
     super.dispose();
   }
 
+  Future<bool> _hideMainWindow() async {
+    // DeichDesk is intended to remain available for unattended access after
+    // the user clicks X. Hide the main window directly instead of asking
+    // window_manager to close/destroy it; the tray can restore it later.
+    if (rustDeskWinManager.getActiveWindows().contains(kMainWindowId)) {
+      await rustDeskWinManager.unregisterActiveWindow(kMainWindowId);
+    }
+    await windowManager.hide();
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final tabWidget = Container(
@@ -107,6 +118,7 @@ class _DesktopTabPageState extends State<DesktopTabPage> {
             backgroundColor: Theme.of(context).colorScheme.surface,
             body: DesktopTab(
               controller: tabController,
+              onWindowCloseButton: _hideMainWindow,
               tail: Offstage(
                 offstage: bind.isIncomingOnly() || bind.isDisableSettings(),
                 child: ActionIcon(
