@@ -42,6 +42,7 @@ class _DeichDeskDesktopBootstrapState extends State<DeichDeskDesktopBootstrap>
   void initState() {
     super.initState();
 
+    // DeichDesk portable builds own their tray lifecycle explicitly.
     _startPortableTray();
 
     _identityTimer = periodic_immediate(const Duration(seconds: 1), () async {
